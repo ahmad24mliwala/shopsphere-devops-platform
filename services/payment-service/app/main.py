@@ -1,4 +1,5 @@
 from shared.metrics import setup_metrics
+from shared.logging_config import setup_logging, setup_request_logging
 
 import os
 
@@ -101,6 +102,8 @@ app = FastAPI(
 )
 
 setup_metrics(app, "payment-service")
+logger = setup_logging("payment-service")
+setup_request_logging(app, logger)
 
 
 def get_db():

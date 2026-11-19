@@ -1,4 +1,5 @@
 from shared.metrics import setup_metrics
+from shared.logging_config import setup_logging, setup_request_logging
 import os
 
 from fastapi import FastAPI, Depends, HTTPException
@@ -76,6 +77,8 @@ class OrderResponse(BaseModel):
 app = FastAPI(title="ShopSphere Order Service", version="2.0.0")
 
 setup_metrics(app, "order-service")
+logger = setup_logging("order-service")
+setup_request_logging(app, logger)
 
 
 def get_db():

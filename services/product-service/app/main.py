@@ -1,4 +1,5 @@
 from shared.metrics import setup_metrics
+from shared.logging_config import setup_logging, setup_request_logging
 import os
 from decimal import Decimal
 
@@ -52,6 +53,8 @@ class ProductResponse(BaseModel):
 app = FastAPI(title="ShopSphere Product Service", version="2.0.0")
 
 setup_metrics(app, "product-service")
+logger = setup_logging("product-service")
+setup_request_logging(app, logger)
 
 
 def get_db():
