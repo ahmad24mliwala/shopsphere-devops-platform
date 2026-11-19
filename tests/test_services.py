@@ -105,3 +105,11 @@ def test_complete_order_payment_flow():
         timeout=5,
     )
     assert duplicate_response.status_code == 409
+
+@pytest.mark.parametrize("service,base_url", BASE_URLS.items())
+def test_metrics_endpoint(service, base_url):
+    response = requests.get(f"{base_url}/metrics", timeout=5)
+
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text
+    assert "http_request_duration_seconds" in response.text

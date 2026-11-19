@@ -1,3 +1,4 @@
+from shared.metrics import setup_metrics
 import os
 from datetime import datetime
 
@@ -49,6 +50,8 @@ class UserResponse(BaseModel):
 
 
 app = FastAPI(title="ShopSphere User Service", version="2.0.0")
+
+setup_metrics(app, "user-service")
 
 
 def get_db():

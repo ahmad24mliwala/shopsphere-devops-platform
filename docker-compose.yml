@@ -18,7 +18,9 @@ services:
     mem_limit: 384m
 
   user-service:
-    build: ./services/user-service
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
     container_name: shopsphere-user
     ports:
       - "127.0.0.1:8001:8000"
@@ -30,7 +32,9 @@ services:
         condition: service_healthy
 
   product-service:
-    build: ./services/product-service
+    build:
+      context: .
+      dockerfile: services/product-service/Dockerfile
     container_name: shopsphere-product
     ports:
       - "127.0.0.1:8002:8000"
@@ -42,7 +46,9 @@ services:
         condition: service_healthy
 
   order-service:
-    build: ./services/order-service
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
     container_name: shopsphere-order
     ports:
       - "127.0.0.1:8003:8000"
@@ -54,7 +60,9 @@ services:
         condition: service_healthy
 
   payment-service:
-    build: ./services/payment-service
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
     container_name: shopsphere-payment
     ports:
       - "127.0.0.1:8004:8000"

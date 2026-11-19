@@ -1,3 +1,4 @@
+from shared.metrics import setup_metrics
 import os
 from decimal import Decimal
 
@@ -49,6 +50,8 @@ class ProductResponse(BaseModel):
 
 
 app = FastAPI(title="ShopSphere Product Service", version="2.0.0")
+
+setup_metrics(app, "product-service")
 
 
 def get_db():
