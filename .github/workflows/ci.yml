@@ -1,0 +1,73 @@
+
+name: ShopSphere CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Build, Start and Test Microservices
+    runs-on: ubuntu-latest
+
+    env:
+      DB_NAME: shopsphere_ci
+      DB_USER: shopsphere_ci
+      DB_PASSWORD: ci_test_password_only
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build and Start Application
+        run: docker compose up --build -d
+
+      - name: Wait for Microservices
+        run: |
+          for port in 8001 8002 8003 8004; do
+            echo "Waiting for service on port $port"
+
+            for attempt in $(seq 1 30); do
+              if curl --silent --fail \
+                http://127.0.0.1:$port/health; then
+                echo ""
+                break
+              fi
+
+              if [ "$attempt" -eq 30 ]; then
+                echo "Service on port $port did not become healthy"
+                docker compose ps
+                docker compose logs
+                exit 1
+              fi
+
+              sleep 5
+            done
+          done
+
+      - name: Run Automated Tests
+        run: pytest -v
+
+      - name: Show Logs on Failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=100
+
+      - name: Stop Application
+        if: always()
+        run: docker compose down
