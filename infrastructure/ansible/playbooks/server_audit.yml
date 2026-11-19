@@ -1,0 +1,43 @@
+---
+- name: ShopSphere Linux Server Audit
+  hosts: shopsphere_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.14
+
+  tasks:
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ ansible_facts['hostname'] }}"
+
+    - name: Display operating system
+      ansible.builtin.debug:
+        msg: "OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+
+    - name: Display CPU information
+      ansible.builtin.debug:
+        msg: "CPU cores: {{ ansible_facts['processor_vcpus'] }}"
+
+    - name: Display total memory
+      ansible.builtin.debug:
+        msg: "Total memory: {{ (ansible_facts['memtotal_mb'] / 1024) | round(2) }} GB"
+
+    - name: Check disk usage
+      ansible.builtin.command: df -h /
+      register: disk_usage
+      changed_when: false
+
+    - name: Display disk usage
+      ansible.builtin.debug:
+        var: disk_usage.stdout_lines
+
+    - name: Check server uptime
+      ansible.builtin.command: uptime
+      register: server_uptime
+      changed_when: false
+
+    - name: Display uptime
+      ansible.builtin.debug:
+        var: server_uptime.stdout

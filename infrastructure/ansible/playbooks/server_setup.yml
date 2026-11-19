@@ -1,0 +1,26 @@
+---
+- name: ShopSphere Linux Server Setup
+  hosts: shopsphere_servers
+  become: true
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.14
+
+  tasks:
+    - name: Update APT package cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - git
+          - unzip
+        state: present
+
+    - name: Display setup completion message
+      ansible.builtin.debug:
+        msg: "ShopSphere server setup completed successfully!"
