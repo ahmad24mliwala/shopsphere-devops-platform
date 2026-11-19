@@ -1,0 +1,30 @@
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopsphere-jenkins
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment:
+      JAVA_OPTS: "-Xms96m -Xmx192m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m -XX:+UseG1GC"
+
+    mem_limit: 512m
+    cpus: 0.5
+
+    volumes:
+      - jenkins_home:/var/jenkins_home
+
+    networks:
+      - shopsphere
+
+volumes:
+  jenkins_home:
+
+networks:
+  shopsphere:
+    external: true
+    name: shopsphere-devops-platform_default

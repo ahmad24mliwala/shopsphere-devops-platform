@@ -1,12 +1,12 @@
-
+import os
 import pytest
 import requests
 
 BASE_URLS = {
-    "user": "http://localhost:8001",
-    "product": "http://localhost:8002",
-    "order": "http://localhost:8003",
-    "payment": "http://localhost:8004",
+    "user": os.getenv("USER_SERVICE_URL", "http://localhost:8001"),
+    "product": os.getenv("PRODUCT_SERVICE_URL", "http://localhost:8002"),
+    "order": os.getenv("ORDER_SERVICE_URL", "http://localhost:8003"),
+    "payment": os.getenv("PAYMENT_SERVICE_URL", "http://localhost:8004"),
 }
 
 
