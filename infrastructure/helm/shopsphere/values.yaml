@@ -1,0 +1,58 @@
+namespace: shopsphere
+
+global:
+  imagePullPolicy: IfNotPresent
+
+services:
+  user:
+    name: user-service
+    image: shopsphere-devops-platform-user-service
+    tag: latest
+    replicas: 1
+    port: 8000
+
+  product:
+    name: product-service
+    image: shopsphere-devops-platform-product-service
+    tag: latest
+    replicas: 1
+    port: 8000
+
+  order:
+    name: order-service
+    image: shopsphere-devops-platform-order-service
+    tag: latest
+    replicas: 1
+    port: 8000
+
+  payment:
+    name: payment-service
+    image: shopsphere-devops-platform-payment-service
+    tag: latest
+    replicas: 1
+    port: 8000
+
+database:
+  name: db
+  secretName: shopsphere-db-secret
+  image: postgres
+  tag: "16-alpine"
+  replicas: 1
+  port: 5432
+  storage: 2Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+databaseResources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
