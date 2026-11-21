@@ -30,6 +30,28 @@ pipeline {
             }
         }
 
+        stage('Install Security Scanner') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+                    python -m pip install -r requirements-security.txt
+                '''
+            }
+        }
+
+        stage('Audit Python Dependencies') {
+            steps {
+                sh '''
+                    . .venv/bin/activate
+
+                    for file in services/*/requirements.txt; do
+                        echo "Auditing $file"
+                        pip-audit -r "$file"
+                    done
+                '''
+            }
+        }
+
         stage('Run API and Integration Tests') {
             steps {
                 sh '''
