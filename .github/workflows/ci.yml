@@ -46,6 +46,45 @@ jobs:
       - name: Build and Start Application
         run: docker compose up --build -d
 
+      - name: Scan User Service Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shopsphere-devops-platform-user-service:latest
+          version: v0.76.2
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Scan Product Service Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shopsphere-devops-platform-product-service:latest
+          version: v0.76.2
+          skip-setup-trivy: true
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Scan Order Service Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shopsphere-devops-platform-order-service:latest
+          version: v0.76.2
+          skip-setup-trivy: true
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Scan Payment Service Image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: shopsphere-devops-platform-payment-service:latest
+          version: v0.76.2
+          skip-setup-trivy: true
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
       - name: Wait for Microservices
         run: |
           for port in 8001 8002 8003 8004; do
