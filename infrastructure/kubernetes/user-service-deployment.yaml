@@ -20,11 +20,21 @@ spec:
         app: user-service
 
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: user-service
           image: shopsphere-devops-platform-user-service:latest
           imagePullPolicy: IfNotPresent
-
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8000
               name: http

@@ -16,10 +16,21 @@ spec:
       labels:
         app: {{ $service.name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ $service.name }}
           image: "{{ $service.image }}:{{ $service.tag }}"
           imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: {{ $service.port }}

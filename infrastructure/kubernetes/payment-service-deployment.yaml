@@ -20,11 +20,21 @@ spec:
         app: payment-service
 
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: payment-service
           image: shopsphere-devops-platform-payment-service:latest
           imagePullPolicy: IfNotPresent
-
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8000
               name: http
