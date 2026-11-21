@@ -169,7 +169,44 @@ Tasks include:
 - CPU and memory information.
 - Disk usage and uptime auditing.
 
-## 8. Monitoring and Logging
+
+## 8. Kubernetes and Helm
+
+The project includes Kubernetes deployment configurations for the four FastAPI microservices and PostgreSQL.
+
+**Kubernetes resources:**
+- Namespace and service deployments.
+- ClusterIP services for application networking.
+- PostgreSQL StatefulSet with persistent volume claim.
+- ConfigMap for database initialization.
+- Kubernetes Secrets references for database credentials.
+- Startup, readiness, and liveness probes.
+- CPU and memory requests and limits.
+- Non-root application containers and security contexts.
+
+**Helm deployment:**
+
+A reusable Helm chart is available at `infrastructure/helm/shopsphere/`.
+
+The chart supports configurable container images, replica counts, resource limits, database settings, and Secret references.
+
+**Validation performed:**
+
+```bash
+helm lint infrastructure/helm/shopsphere
+
+helm template shopsphere infrastructure/helm/shopsphere \
+  > /tmp/shopsphere-rendered.yaml
+
+kubeconform -strict -summary /tmp/shopsphere-rendered.yaml
+```
+
+Validation result: 12 Kubernetes resources valid, zero invalid resources, and zero schema errors.
+
+**Deployment status:** Kubernetes manifests and Helm templates are prepared and validated. Deployment to a live Kubernetes cluster has not yet been performed.
+
+
+## 9. Monitoring and Logging
 
 ### Health Checks
 
@@ -197,7 +234,7 @@ Logs can be inspected using Docker Compose.
 
 **Note:** Prometheus and Grafana servers are not currently deployed. The application exposes metrics for future integration with monitoring platforms.
 
-## 9. Automated Testing
+## 10. Automated Testing
 
 The project currently includes 13 automated tests.
 
@@ -216,44 +253,91 @@ source .venv/bin/activate
 pytest -v
 ```
 
-## 10. Repository Structure
+## 11. Repository Structure
 
 ```text
+
 shopsphere-devops-platform/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
-├── infrastructure/
-│   ├── ansible/
-│   ├── jenkins/
-│   └── terraform/
 ├── services/
 │   ├── user-service/
 │   ├── product-service/
 │   ├── order-service/
 │   └── payment-service/
+├── database/
+│   └── init.sql
 ├── shared/
 │   ├── metrics.py
 │   └── logging_config.py
 ├── tests/
+│   └── test_services.py
+├── infrastructure/
+│   ├── ansible/
+│   │   ├── inventory/
+│   │   └── playbooks/
+│   ├── helm/
+│   │   └── shopsphere/
+│   │       ├── templates/
+│   │       ├── files/
+│   │       ├── Chart.yaml
+│   │       └── values.yaml
+│   ├── jenkins/
+│   │   ├── Dockerfile
+│   │   └── docker-compose.yml
+│   ├── kubernetes/
+│   │   └── Kubernetes manifests
+│   └── terraform/
+│       └── main.tf
 ├── docker-compose.yml
 ├── Jenkinsfile
 ├── requirements-dev.txt
+├── .dockerignore
 └── README.md
+
 ```
 
-## 11. Security and Limitations
 
+## 12. Security and Limitations
+
+### Container Security
+
+- Application containers run as a dedicated non-root user.
+- Docker images update operating system packages during builds.
+- Docker build context excludes environment files, private keys, Terraform state, and unnecessary files.
+- Application containers use restricted filesystem ownership.
+- Jenkins deployment uses a restricted SSH key and host-side deployment script.
+
+### Kubernetes Security
+
+- Application pods use non-root execution with UID/GID 999.
+- Privilege escalation is disabled.
+- Linux capabilities are dropped for application containers.
+- RuntimeDefault seccomp profile is configured.
+- Database credentials are referenced through Kubernetes Secrets rather than hardcoded values.
+
+### Vulnerability Scanning
+
+Container images were scanned using Trivy.
+
+The scan identified HIGH-severity operating system package findings and no CRITICAL findings in the recorded scan. No Python dependency vulnerabilities were reported.
+
+Some operating system findings did not have an available fix at scan time. Therefore, the images should not be considered vulnerability-free.
+
+### Limitations
+
+- Kubernetes manifests and Helm templates are validated but have not been deployed to a live cluster.
+- Prometheus and Grafana servers are not deployed.
 - Payment operations are simulated; no real financial transactions occur.
 - Terraform currently performs read-only infrastructure inspection.
-- Prometheus and Grafana servers are not deployed.
 - Automatic deployment rollback is not implemented.
 - Application API ports are bound to localhost on the EC2 host.
-- Environment files, passwords, tokens, and private keys must never be committed.
-- Terraform state and sensitive variable files must remain excluded from version control.
 - This is a learning and portfolio project, not a fully production-hardened platform.
+- Environment files, passwords, tokens, private keys, and sensitive Terraform state must never be committed.
 
-## 12. Future Improvements
+
+## 13. Future Improvements
 
 - Deploy Prometheus and Grafana.
 - Implement automated deployment rollback.
@@ -262,6 +346,6 @@ shopsphere-devops-platform/
 - Explore Kubernetes-based deployment.
 - Extend infrastructure automation.
 
-## 13. Repository
+## 14. Repository
 
 GitHub: https://github.com/ahmad24mliwala/shopsphere-devops-platform
