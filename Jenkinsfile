@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -43,7 +44,6 @@ pipeline {
             steps {
                 sh '''
                     . .venv/bin/activate
-
                     for file in services/*/requirements.txt; do
                         echo "Auditing $file"
                         pip-audit -r "$file"
@@ -72,7 +72,6 @@ pipeline {
                 ]) {
                     sh '''
                         set -eu
-
                         ssh -i "$SSH_KEY" \
                             -o IdentitiesOnly=yes \
                             -o BatchMode=yes \
@@ -83,15 +82,36 @@ pipeline {
                 }
             }
         }
+
+        stage('Archive Docker SBOM Reports') {
+            steps {
+                sh '''
+                    set -eu
+                    mkdir -p sbom-reports
+
+                    cp /var/jenkins_home/shopsphere-sboms/*.cdx sbom-reports/
+
+                    test "$(find sbom-reports -maxdepth 1 -type f -name '*.cdx' | wc -l)" -eq 4
+
+                    echo "All four SBOM reports copied successfully."
+                    ls -lh sbom-reports/
+                '''
+
+                archiveArtifacts artifacts: 'sbom-reports/*.cdx',
+                                 fingerprint: true
+            }
+        }
     }
 
     post {
         always {
             echo 'ShopSphere Jenkins pipeline finished.'
         }
+
         success {
             echo 'Tests and deployment completed successfully.'
         }
+
         failure {
             echo 'Pipeline failed. Review the console output.'
         }
