@@ -84,6 +84,34 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
+      - name: Generate CycloneDX SBOMs
+        run: |
+          mkdir -p sbom
+
+          trivy image --format cyclonedx \
+            --output sbom/user-service.cdx.json \
+            shopsphere-devops-platform-user-service:latest
+
+          trivy image --format cyclonedx \
+            --output sbom/product-service.cdx.json \
+            shopsphere-devops-platform-product-service:latest
+
+          trivy image --format cyclonedx \
+            --output sbom/order-service.cdx.json \
+            shopsphere-devops-platform-order-service:latest
+
+          trivy image --format cyclonedx \
+            --output sbom/payment-service.cdx.json \
+            shopsphere-devops-platform-payment-service:latest
+
+      - name: Upload SBOM Reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: shopsphere-cyclonedx-sboms
+          path: sbom/
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Wait for Microservices
         run: |
           for port in 8001 8002 8003 8004; do
