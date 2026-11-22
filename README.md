@@ -134,6 +134,13 @@ The Jenkins pipeline demonstrates:
 7. Application container deployment.
 8. Health verification of all four services.
 
+**Automated Trigger:**
+
+- Jenkins SCM polling is enabled at the job level.
+- Schedule: `H/5 * * * *` (approximately every 5 minutes).
+- Jenkins checks GitHub for new commits and automatically starts the pipeline when changes are detected.
+- The pipeline deploys the application to the EC2 instance and verifies service health.
+
 ### Deployment Safety
 
 - Deployment uses a restricted SSH key and host-side script.
@@ -219,6 +226,21 @@ Each microservice exposes a `/metrics` endpoint with Prometheus-compatible metri
 - HTTP request counters.
 - HTTP request duration histograms.
 
+### Prometheus Configuration
+
+Prometheus configuration is available at `infrastructure/monitoring/prometheus.yml`.
+
+It defines four application metrics targets:
+
+- User Service
+- Product Service
+- Order Service
+- Payment Service
+
+The scrape interval is 15 seconds.
+
+Prometheus configuration has been created and validated. Prometheus and Grafana servers are not running on the current EC2 instance because of limited resources.
+
 ### Structured JSON Logging
 
 Application request logs are emitted as structured JSON records containing information such as:
@@ -233,6 +255,21 @@ Application request logs are emitted as structured JSON records containing infor
 Logs can be inspected using Docker Compose.
 
 **Note:** Prometheus and Grafana servers are not currently deployed. The application exposes metrics for future integration with monitoring platforms.
+
+### PostgreSQL Backup Verification
+
+PostgreSQL database backups are created using `pg_dump` in custom archive format.
+
+Backup verification performed:
+
+- Created a database backup archive.
+- Inspected the archive using `pg_restore --list`.
+- Verified that all four database tables were included.
+- Compared backup row counts with live database row counts.
+
+The backup archive was verified successfully. A full database restore test has not yet been performed.
+
+Backup files are stored outside the Git repository.
 
 ## 10. Automated Testing
 
@@ -253,10 +290,10 @@ source .venv/bin/activate
 pytest -v
 ```
 
+
 ## 11. Repository Structure
 
 ```text
-
 shopsphere-devops-platform/
 ├── .github/
 │   └── workflows/
@@ -288,14 +325,16 @@ shopsphere-devops-platform/
 │   │   └── docker-compose.yml
 │   ├── kubernetes/
 │   │   └── Kubernetes manifests
-│   └── terraform/
-│       └── main.tf
+│   ├── terraform/
+│   │   └── main.tf
+│   └── monitoring/
+│       ├── prometheus.yml
+│       └── README.md
 ├── docker-compose.yml
 ├── Jenkinsfile
 ├── requirements-dev.txt
 ├── .dockerignore
 └── README.md
-
 ```
 
 
