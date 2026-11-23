@@ -1,0 +1,29 @@
+flowchart TD
+    A["Developer pushes code"] --> GH["GitHub Repository"]
+
+    GH --> B["GitHub Actions CI"]
+    B --> C["Checkout and Python 3.12 setup"]
+    C --> D["Install test and security dependencies"]
+    D --> E["pip-audit dependency scan"]
+    E --> F["Docker Compose build and start"]
+    F --> G["Trivy scans four Docker images"]
+    G --> H["Generate four CycloneDX SBOMs"]
+    H --> I["Upload SBOM artifacts"]
+    I --> J["Check service health"]
+    J --> K["Run 13 automated tests"]
+    K --> L["Stop test containers"]
+
+    GH --> M["Jenkins SCM polling"]
+    M --> N["Checkout source and install dependencies"]
+    N --> O["pip-audit and pytest"]
+    O --> P["SSH deployment to EC2"]
+    P --> Q["Build four backend images"]
+    Q --> R["Recreate backend containers"]
+    R --> S["Health checks"]
+    S --> T["Generate and archive SBOM reports"]
+
+    U["Frontend: npm build"] --> V["Copy dist to Nginx web root"]
+    V --> W["React application served by Nginx"]
+
+    classDef success fill:#dcfce7,stroke:#16a34a,color:#14532d
+    class L,T,W success

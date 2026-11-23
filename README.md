@@ -5,12 +5,13 @@ A hands-on DevOps portfolio project demonstrating a microservices-based e-commer
 
 ## 1. Project Overview
 
-ShopSphere is a Python-based e-commerce backend built using four independent FastAPI microservices and PostgreSQL.
+ShopSphere is a portfolio e-commerce platform with a React frontend, four independent FastAPI microservices, and PostgreSQL.
 
-The application runs on AWS EC2 Ubuntu and uses Docker Compose to manage its containers.
+The application runs on AWS EC2 Ubuntu. Docker Compose manages the backend services and database, while Nginx serves the frontend and routes API requests.
 
 ### Key Features
 
+- React 19 frontend with product browsing, search, category filters, cart, checkout, and order confirmation.
 - Four independent FastAPI microservices.
 - PostgreSQL relational database.
 - Docker and Docker Compose containerization.
@@ -22,39 +23,75 @@ The application runs on AWS EC2 Ubuntu and uses Docker Compose to manage its con
 - Prometheus-compatible application metrics.
 - Structured JSON application logging.
 
+### Application Preview
+
+![ShopSphere Homepage](docs/screenshots/homepage.png)
+
+![Product Catalogue](docs/screenshots/products.png)
+
+![Checkout and Order Confirmation](docs/screenshots/checkout.png)
+
+![Grafana Monitoring Dashboard](docs/screenshots/grafana.png)
+
+![Jenkins CI/CD Pipeline](docs/screenshots/jenkins.png)
+
 ## 2. Architecture
 
 ```mermaid
-flowchart TD
-    Client[API Client]
+flowchart TB
+    User["🌐 Customer Browser"]
+    GH["GitHub Repository"]
+    GHA["GitHub Actions CI"]
 
-    subgraph AWS["AWS EC2 - Ubuntu"]
-        subgraph Docker["Docker Compose"]
-            User[User Service]
-            Product[Product Service]
-            Order[Order Service]
-            Payment[Payment Service]
-            DB[(PostgreSQL)]
+    subgraph AWS["☁️ AWS Cloud — EC2 Ubuntu"]
+        subgraph HOST["EC2 Host"]
+            NGINX["Nginx :80"]
+            REACT["React 19 Static Frontend"]
+            subgraph DOCKER["Docker Compose Network"]
+                US["User API :8001"]
+                PS["Product API :8002"]
+                OS["Order API :8003"]
+                PAY["Payment API :8004"]
+                DB[("PostgreSQL :5432")]
+                PROM["Prometheus :9090"]
+                GRAF["Grafana :3000"]
+            end
+            JENKINS["Jenkins :8080"]
         end
-        Jenkins[Jenkins CI/CD]
     end
 
-    Client --> User
-    Client --> Product
-    Client --> Order
-    Client --> Payment
+    User -->|"HTTP"| NGINX
+    NGINX -->|"Serves static files"| REACT
+    NGINX -->|"/api/users"| US
+    NGINX -->|"/api/products"| PS
+    NGINX -->|"/api/orders"| OS
+    NGINX -->|"/api/payments"| PAY
 
-    User --> DB
-    Product --> DB
-    Order --> DB
-    Payment --> DB
+    US --> DB
+    PS --> DB
+    OS --> DB
+    PAY --> DB
 
-    Jenkins --> Docker
+    PROM -->|"Scrapes /metrics"| US
+    PROM --> PS
+    PROM --> OS
+    PROM --> PAY
+    GRAF --> PROM
+
+    GH --> GHA
+    GH -->|"SCM checkout / polling"| JENKINS
+
+    classDef frontend fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef backend fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef ops fill:#fef3c7,stroke:#d97706,color:#78350f
+    class REACT,NGINX frontend
+    class US,PS,OS,PAY,DB backend
+    class JENKINS,PROM,GRAF,GHA ops
 ```
 
 ## 3. Microservices
 
-The application consists of four independent FastAPI services.
+The application consists of a React frontend and four independent FastAPI services.
 
 | Service | Responsibility | Host Port |
 |---|---|---:|
@@ -112,14 +149,22 @@ The project uses GitHub Actions and Jenkins.
 
 ### GitHub Actions
 
-The GitHub Actions workflow:
+The GitHub Actions workflow runs automatically on pushes and pull requests targeting the `main` branch.
 
-1. Runs when code is pushed to GitHub.
-2. Sets up the Python environment.
-3. Starts the application and CI database.
-4. Installs test dependencies.
-5. Runs automated tests.
-6. Reports success or failure.
+The workflow performs these steps:
+
+1. Checks out the repository and sets up Python 3.12.
+2. Installs development and security dependencies.
+3. Runs `pip-audit` against the requirements of all four microservices.
+4. Builds and starts the application and PostgreSQL containers using Docker Compose.
+5. Scans all four backend Docker images with Trivy for HIGH and CRITICAL vulnerabilities. Unfixed vulnerabilities are ignored by the configured scan.
+6. Generates CycloneDX Software Bill of Materials (SBOM) files for all four images.
+7. Uploads the SBOM files as GitHub Actions artifacts, retained for 30 days.
+8. Checks the health endpoints of all four microservices.
+9. Runs the automated pytest suite (13 tests).
+10. Stops the CI containers, including when the workflow fails.
+
+The workflow provides automated testing, dependency auditing, container image security checks, and software supply-chain visibility before changes are accepted.
 
 ### Jenkins
 
@@ -140,6 +185,40 @@ The Jenkins pipeline demonstrates:
 - Schedule: `H/5 * * * *` (approximately every 5 minutes).
 - Jenkins checks GitHub for new commits and automatically starts the pipeline when changes are detected.
 - The pipeline deploys the application to the EC2 instance and verifies service health.
+
+### CI/CD Workflow
+
+```mermaid
+flowchart TD
+    A["Developer pushes code"] --> GH["GitHub Repository"]
+
+    GH --> B["GitHub Actions CI"]
+    B --> C["Checkout and Python 3.12 setup"]
+    C --> D["Install test and security dependencies"]
+    D --> E["pip-audit dependency scan"]
+    E --> F["Docker Compose build and start"]
+    F --> G["Trivy scans four Docker images"]
+    G --> H["Generate four CycloneDX SBOMs"]
+    H --> I["Upload SBOM artifacts"]
+    I --> J["Check service health"]
+    J --> K["Run 13 automated tests"]
+    K --> L["Stop test containers"]
+
+    GH --> M["Jenkins SCM polling"]
+    M --> N["Checkout source and install dependencies"]
+    N --> O["pip-audit and pytest"]
+    O --> P["SSH deployment to EC2"]
+    P --> Q["Build four backend images"]
+    Q --> R["Recreate backend containers"]
+    R --> S["Health checks"]
+    S --> T["Generate and archive SBOM reports"]
+
+    U["Frontend: npm build"] --> V["Copy dist to Nginx web root"]
+    V --> W["React application served by Nginx"]
+
+    classDef success fill:#dcfce7,stroke:#16a34a,color:#14532d
+    class L,T,W success
+```
 
 ### Deployment Safety
 
@@ -212,6 +291,56 @@ Validation result: 12 Kubernetes resources valid, zero invalid resources, and ze
 
 **Deployment status:** Kubernetes manifests and Helm templates are prepared and validated. Deployment to a live Kubernetes cluster has not yet been performed.
 
+### Kubernetes Architecture (Design Only)
+
+```mermaid
+flowchart TB
+    STATUS["Design validated with Helm lint and kubeconform — NOT deployed to a live cluster"]
+
+    subgraph K8S["Kubernetes Namespace: shopsphere"]
+        ING["Ingress / External Access (not configured)"]
+
+        subgraph APPS["Application Deployments"]
+            U["User Service Deployment"]
+            P["Product Service Deployment"]
+            O["Order Service Deployment"]
+            PAY["Payment Service Deployment"]
+        end
+
+        subgraph SERVICES["ClusterIP Services"]
+            US["user-service"]
+            PS["product-service"]
+            OS["order-service"]
+            PAYS["payment-service"]
+            DBS["db"]
+        end
+
+        DB["PostgreSQL StatefulSet"]
+        PVC[("PersistentVolumeClaim")]
+        SECRET["Secret: shopsphere-db-secret"]
+        CM["ConfigMap: db-init-script"]
+    end
+
+    STATUS -.-> K8S
+    ING --> US
+    ING --> PS
+    ING --> OS
+    ING --> PAYS
+    US --> U
+    PS --> P
+    OS --> O
+    PAYS --> PAY
+
+    U --> DBS
+    P --> DBS
+    O --> DBS
+    PAY --> DBS
+    DBS --> DB
+    DB --> PVC
+    SECRET -. "Database credentials" .-> DB
+    CM -. "Initialization script" .-> DB
+```
+
 
 ## 9. Monitoring and Logging
 
@@ -239,7 +368,7 @@ It defines four application metrics targets:
 
 The scrape interval is 15 seconds.
 
-Prometheus configuration has been created and validated. Prometheus and Grafana servers are not running on the current EC2 instance because of limited resources.
+Prometheus and Grafana are running as Docker containers on the EC2 instance. Prometheus scrapes all four API services every 15 seconds. Grafana provides the ShopSphere DevOps Monitoring dashboard.
 
 ### Structured JSON Logging
 
@@ -254,7 +383,7 @@ Application request logs are emitted as structured JSON records containing infor
 
 Logs can be inspected using Docker Compose.
 
-**Note:** Prometheus and Grafana servers are not currently deployed. The application exposes metrics for future integration with monitoring platforms.
+**Access:** Prometheus (port 9090) and Grafana (port 3000) are bound to localhost on the EC2 host and are not directly exposed to the public internet. Access them through an SSH tunnel.
 
 ### PostgreSQL Backup Verification
 
@@ -295,48 +424,50 @@ pytest -v
 
 ```text
 shopsphere-devops-platform/
-├── .github/
-│   └── workflows/
-│       └── ci.yml
+├── .github/workflows/ci.yml
+├── database/init.sql
+├── docs/
+│   ├── diagrams/
+│   │   ├── architecture.mmd
+│   │   ├── ci-cd-pipeline.mmd
+│   │   └── kubernetes-architecture.mmd
+│   └── screenshots/
+│       ├── checkout.png
+│       ├── grafana.png
+│       ├── homepage.png
+│       ├── jenkins.png
+│       └── products.png
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.js
+├── infrastructure/
+│   ├── ansible/
+│   ├── helm/shopsphere/
+│   ├── jenkins/
+│   ├── kubernetes/
+│   ├── monitoring/
+│   └── terraform/main.tf
 ├── services/
 │   ├── user-service/
 │   ├── product-service/
 │   ├── order-service/
 │   └── payment-service/
-├── database/
-│   └── init.sql
 ├── shared/
-│   ├── metrics.py
-│   └── logging_config.py
-├── tests/
-│   └── test_services.py
-├── infrastructure/
-│   ├── ansible/
-│   │   ├── inventory/
-│   │   └── playbooks/
-│   ├── helm/
-│   │   └── shopsphere/
-│   │       ├── templates/
-│   │       ├── files/
-│   │       ├── Chart.yaml
-│   │       └── values.yaml
-│   ├── jenkins/
-│   │   ├── Dockerfile
-│   │   └── docker-compose.yml
-│   ├── kubernetes/
-│   │   └── Kubernetes manifests
-│   ├── terraform/
-│   │   └── main.tf
-│   └── monitoring/
-│       ├── prometheus.yml
-│       └── README.md
+│   ├── logging_config.py
+│   └── metrics.py
+├── tests/test_services.py
+├── .dockerignore
+├── .gitignore
 ├── docker-compose.yml
 ├── Jenkinsfile
 ├── requirements-dev.txt
-├── .dockerignore
+├── requirements-security.txt
 └── README.md
-```
 
+```
 
 ## 12. Security and Limitations
 
@@ -367,7 +498,6 @@ Some operating system findings did not have an available fix at scan time. There
 ### Limitations
 
 - Kubernetes manifests and Helm templates are validated but have not been deployed to a live cluster.
-- Prometheus and Grafana servers are not deployed.
 - Payment operations are simulated; no real financial transactions occur.
 - Terraform currently performs read-only infrastructure inspection.
 - Automatic deployment rollback is not implemented.
@@ -378,7 +508,7 @@ Some operating system findings did not have an available fix at scan time. There
 
 ## 13. Future Improvements
 
-- Deploy Prometheus and Grafana.
+- Improve monitoring dashboards and alerting.
 - Implement automated deployment rollback.
 - Expand automated test coverage.
 - Improve authentication and application security.

@@ -1,0 +1,42 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: shopsphere-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=250MB
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    mem_limit: 256m
+    restart: unless-stopped
+    networks:
+      - shopsphere
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: shopsphere-grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    mem_limit: 192m
+    restart: unless-stopped
+    networks:
+      - shopsphere
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  shopsphere:
+    external: true
+    name: shopsphere-devops-platform_default

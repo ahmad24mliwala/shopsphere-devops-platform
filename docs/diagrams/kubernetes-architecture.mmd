@@ -1,0 +1,45 @@
+flowchart TB
+    STATUS["Design validated with Helm lint and kubeconform — NOT deployed to a live cluster"]
+
+    subgraph K8S["Kubernetes Namespace: shopsphere"]
+        ING["Ingress / External Access (not configured)"]
+
+        subgraph APPS["Application Deployments"]
+            U["User Service Deployment"]
+            P["Product Service Deployment"]
+            O["Order Service Deployment"]
+            PAY["Payment Service Deployment"]
+        end
+
+        subgraph SERVICES["ClusterIP Services"]
+            US["user-service"]
+            PS["product-service"]
+            OS["order-service"]
+            PAYS["payment-service"]
+            DBS["db"]
+        end
+
+        DB["PostgreSQL StatefulSet"]
+        PVC[("PersistentVolumeClaim")]
+        SECRET["Secret: shopsphere-db-secret"]
+        CM["ConfigMap: db-init-script"]
+    end
+
+    STATUS -.-> K8S
+    ING --> US
+    ING --> PS
+    ING --> OS
+    ING --> PAYS
+    US --> U
+    PS --> P
+    OS --> O
+    PAYS --> PAY
+
+    U --> DBS
+    P --> DBS
+    O --> DBS
+    PAY --> DBS
+    DBS --> DB
+    DB --> PVC
+    SECRET -. "Database credentials" .-> DB
+    CM -. "Initialization script" .-> DB

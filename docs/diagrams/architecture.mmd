@@ -1,0 +1,49 @@
+flowchart TB
+    User["🌐 Customer Browser"]
+    GH["GitHub Repository"]
+    GHA["GitHub Actions CI"]
+
+    subgraph AWS["☁️ AWS Cloud — EC2 Ubuntu"]
+        subgraph HOST["EC2 Host"]
+            NGINX["Nginx :80"]
+            REACT["React 19 Static Frontend"]
+            subgraph DOCKER["Docker Compose Network"]
+                US["User API :8001"]
+                PS["Product API :8002"]
+                OS["Order API :8003"]
+                PAY["Payment API :8004"]
+                DB[("PostgreSQL :5432")]
+                PROM["Prometheus :9090"]
+                GRAF["Grafana :3000"]
+            end
+            JENKINS["Jenkins :8080"]
+        end
+    end
+
+    User -->|"HTTP"| NGINX
+    NGINX -->|"Serves static files"| REACT
+    NGINX -->|"/api/users"| US
+    NGINX -->|"/api/products"| PS
+    NGINX -->|"/api/orders"| OS
+    NGINX -->|"/api/payments"| PAY
+
+    US --> DB
+    PS --> DB
+    OS --> DB
+    PAY --> DB
+
+    PROM -->|"Scrapes /metrics"| US
+    PROM --> PS
+    PROM --> OS
+    PROM --> PAY
+    GRAF --> PROM
+
+    GH --> GHA
+    GH -->|"SCM checkout / polling"| JENKINS
+
+    classDef frontend fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef backend fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef ops fill:#fef3c7,stroke:#d97706,color:#78350f
+    class REACT,NGINX frontend
+    class US,PS,OS,PAY,DB backend
+    class JENKINS,PROM,GRAF,GHA ops
