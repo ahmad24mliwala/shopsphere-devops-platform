@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+
 const images = [
   'photo-1496181133206-80ce9b88a853',
   'photo-1505740420928-5e560c06d30e',
@@ -32,7 +34,7 @@ function App() {
 
 
   useEffect(() => {
-    fetch('/api/products')
+    fetch(`${API_BASE}/products`)
       .then(response => {
         if (!response.ok) throw new Error('Unable to load products')
         return response.json()
@@ -106,7 +108,7 @@ function App() {
       let customer
 
       try {
-        customer = await request('/api/users', {
+        customer = await request(`${API_BASE}/users`, {
           method: 'POST',
           body: JSON.stringify({
             name: customerName.trim(),
@@ -119,7 +121,7 @@ function App() {
           throw error
         }
 
-        const users = await request('/api/users')
+        const users = await request(`${API_BASE}/users`)
         customer = users.find(user =>
           user.email.toLowerCase() === email
         )
@@ -130,7 +132,7 @@ function App() {
       const completed = []
 
       for (const item of cart) {
-        const order = await request('/api/orders', {
+        const order = await request(`${API_BASE}/orders`, {
           method: 'POST',
           body: JSON.stringify({
             user_id: customer.id,
@@ -139,7 +141,7 @@ function App() {
           }),
         })
 
-        const payment = await request('/api/payments', {
+        const payment = await request(`${API_BASE}/payments`, {
           method: 'POST',
           body: JSON.stringify({
             order_id: order.id,

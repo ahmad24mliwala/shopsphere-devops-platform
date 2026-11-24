@@ -7,7 +7,7 @@ A hands-on DevOps portfolio project demonstrating a microservices-based e-commer
 
 ShopSphere is a portfolio e-commerce platform with a React frontend, four independent FastAPI microservices, and PostgreSQL.
 
-The application runs on AWS EC2 Ubuntu. Docker Compose manages the backend services and database, while Nginx serves the frontend and routes API requests.
+The platform runs on AWS EC2 Ubuntu and demonstrates two deployment environments: Docker Compose and a single-node K3s Kubernetes cluster managed with Helm. Each environment has its own application services and PostgreSQL database. Nginx serves the original React frontend at `/` and a separately built Kubernetes frontend at `/k8s/`, routing API requests to the corresponding backend.
 
 ### Key Features
 
@@ -34,6 +34,18 @@ The application runs on AWS EC2 Ubuntu. Docker Compose manages the backend servi
 ![Grafana Monitoring Dashboard](docs/screenshots/grafana.png)
 
 ![Jenkins CI/CD Pipeline](docs/screenshots/jenkins.png)
+
+### Live Application Access
+
+Replace `YOUR_EC2_PUBLIC_IP` with the public IP address of the running EC2 instance.
+
+| Deployment | URL |
+|---|---|
+| Docker Compose frontend | `http://YOUR_EC2_PUBLIC_IP/` |
+| Kubernetes frontend | `http://YOUR_EC2_PUBLIC_IP/k8s/` |
+| Kubernetes API products | `http://YOUR_EC2_PUBLIC_IP/k8s/api/products` |
+
+The Kubernetes frontend uses the separate Kubernetes backend and database. Payment processing is simulated.
 
 ## 2. Architecture
 
@@ -289,22 +301,40 @@ kubeconform -strict -summary /tmp/shopsphere-rendered.yaml
 
 Validation result: 12 Kubernetes resources valid, zero invalid resources, and zero schema errors.
 
-**Deployment status:** Kubernetes manifests and Helm templates are prepared and validated. Deployment to a live Kubernetes cluster has not yet been performed.
+**Deployment status:** Successfully deployed to a live single-node K3s cluster on AWS EC2 using Helm. The four microservices and PostgreSQL StatefulSet are running in the `shopsphere` namespace.
 
-### Kubernetes Architecture (Design Only)
+### Kubernetes API and Frontend Verification
+
+The live Kubernetes application was tested through the EC2 Nginx endpoint.
+
+| Test | Result |
+|---|---|
+| Create user | HTTP 201 |
+| Create product | HTTP 201 |
+| Create order | HTTP 201 |
+| Create simulated payment | HTTP 201 |
+| Read user, product, order and payment records | HTTP 200 |
+| Kubernetes frontend access at `/k8s/` | HTTP 200 |
+
+The Kubernetes frontend communicates with the Kubernetes microservices through the `/k8s/api/` Nginx routes.
+
+The Kubernetes PostgreSQL database is separate from the Docker Compose database. No database migration was performed. API create/read operations were verified, but database restart persistence has not been independently tested. Payment processing is simulated.
+
+### Live Kubernetes Architecture
 
 ```mermaid
 flowchart TB
-    STATUS["Design validated with Helm lint and kubeconform — NOT deployed to a live cluster"]
+    USER["Customer Browser"]
+    NGINX["Nginx :80 — EC2 Host"]
+    FRONTEND["React Static Frontend — EC2 Nginx /k8s/"]
+    API["Kubernetes API routes — /k8s/api/"]
 
-    subgraph K8S["Kubernetes Namespace: shopsphere"]
-        ING["Ingress / External Access (not configured)"]
-
+    subgraph K8S["Single-node K3s Cluster — Namespace: shopsphere"]
         subgraph APPS["Application Deployments"]
-            U["User Service Deployment"]
-            P["Product Service Deployment"]
-            O["Order Service Deployment"]
-            PAY["Payment Service Deployment"]
+            U["User Service"]
+            P["Product Service"]
+            O["Order Service"]
+            PAY["Payment Service"]
         end
 
         subgraph SERVICES["ClusterIP Services"]
@@ -315,30 +345,31 @@ flowchart TB
             DBS["db"]
         end
 
-        DB["PostgreSQL StatefulSet"]
-        PVC[("PersistentVolumeClaim")]
-        SECRET["Secret: shopsphere-db-secret"]
-        CM["ConfigMap: db-init-script"]
+        DB[("PostgreSQL StatefulSet")]
+        PVC[("2 Gi PersistentVolumeClaim")]
+        SECRET["Kubernetes Secret"]
+        CM["Database initialization ConfigMap"]
     end
 
-    STATUS -.-> K8S
-    ING --> US
-    ING --> PS
-    ING --> OS
-    ING --> PAYS
+    USER --> NGINX
+    NGINX --> FRONTEND
+    NGINX --> API
+    API --> US
+    API --> PS
+    API --> OS
+    API --> PAYS
     US --> U
     PS --> P
     OS --> O
     PAYS --> PAY
-
     U --> DBS
     P --> DBS
     O --> DBS
     PAY --> DBS
     DBS --> DB
     DB --> PVC
-    SECRET -. "Database credentials" .-> DB
-    CM -. "Initialization script" .-> DB
+    SECRET -.-> DB
+    CM -.-> DB
 ```
 
 
@@ -368,7 +399,14 @@ It defines four application metrics targets:
 
 The scrape interval is 15 seconds.
 
-Prometheus and Grafana are running as Docker containers on the EC2 instance. Prometheus scrapes all four API services every 15 seconds. Grafana provides the ShopSphere DevOps Monitoring dashboard.
+Prometheus and Grafana run as Docker containers on the EC2 instance.
+
+**Verified monitoring status:**
+- All four Docker Compose API service targets report UP in Prometheus.
+- Three alert rules are loaded: ServiceDown, HighErrorRate, and HighAPILatency. They were inactive during verification.
+- Grafana is running as a container. Dashboard and datasource functionality have not been independently verified.
+- Kubernetes resource metrics are collected by the K3s metrics-server and can be inspected using `kubectl top nodes` and `kubectl top pods -n shopsphere`.
+- Kubernetes metrics are not currently integrated into the Docker Compose Prometheus instance.
 
 ### Structured JSON Logging
 
@@ -487,6 +525,8 @@ shopsphere-devops-platform/
 - RuntimeDefault seccomp profile is configured.
 - Database credentials are referenced through Kubernetes Secrets rather than hardcoded values.
 
+- The PostgreSQL container uses an `Unconfined` AppArmor profile as a targeted runtime compatibility workaround. This exception applies only to the database container; AppArmor has not been disabled globally.
+
 ### Vulnerability Scanning
 
 Container images were scanned using Trivy.
@@ -497,11 +537,11 @@ Some operating system findings did not have an available fix at scan time. There
 
 ### Limitations
 
-- Kubernetes manifests and Helm templates are validated but have not been deployed to a live cluster.
+- Kubernetes runs on a single-node K3s cluster. High availability and multi-node failover have not been implemented.
 - Payment operations are simulated; no real financial transactions occur.
 - Terraform currently performs read-only infrastructure inspection.
 - Automatic deployment rollback is not implemented.
-- Application API ports are bound to localhost on the EC2 host.
+- Docker Compose application API ports are bound to localhost on the EC2 host. Kubernetes application services use internal ClusterIP networking.
 - This is a learning and portfolio project, not a fully production-hardened platform.
 - Environment files, passwords, tokens, private keys, and sensitive Terraform state must never be committed.
 
@@ -512,7 +552,7 @@ Some operating system findings did not have an available fix at scan time. There
 - Implement automated deployment rollback.
 - Expand automated test coverage.
 - Improve authentication and application security.
-- Explore Kubernetes-based deployment.
+- Integrate Kubernetes metrics and alerting into Prometheus and Grafana.
 - Extend infrastructure automation.
 
 ## 14. Repository

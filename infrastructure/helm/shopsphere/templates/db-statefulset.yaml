@@ -23,6 +23,8 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            appArmorProfile:
+              type: Unconfined
           ports:
             - name: postgres
               containerPort: {{ .Values.database.port }}
