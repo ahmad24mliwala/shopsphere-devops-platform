@@ -1,7 +1,19 @@
-
 # ShopSphere — DevOps Microservices Platform
 
-A hands-on DevOps portfolio project demonstrating a microservices-based e-commerce backend, containerization, automated testing, CI/CD, infrastructure management, deployment, metrics, and structured logging.
+[![CI Pipeline](https://github.com/ahmad24mliwala/shopsphere-devops-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ahmad24mliwala/shopsphere-devops-platform/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Microservices-009688)
+![React](https://img.shields.io/badge/React-19-61DAFB)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-K3s-326CE5)
+![Terraform](https://img.shields.io/badge/Terraform-Infrastructure-844FBA)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939)
+![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-E6522C)
+![Grafana](https://img.shields.io/badge/Grafana-Dashboards-F46800)
+
+A production-style DevOps portfolio project demonstrating containerized microservices, automated CI/CD, Kubernetes orchestration, infrastructure automation, security scanning, and observability on AWS EC2.
+
+**Built with:** React · FastAPI · PostgreSQL · Docker · Kubernetes · Jenkins · GitHub Actions · Terraform · Ansible · Prometheus · Grafana
 
 ## 1. Project Overview
 
@@ -51,56 +63,85 @@ The Kubernetes frontend uses the separate Kubernetes backend and database. Payme
 
 ```mermaid
 flowchart TB
-    User["🌐 Customer Browser"]
+    USER["Customer Browser"]
     GH["GitHub Repository"]
     GHA["GitHub Actions CI"]
+    JENKINS["Jenkins CI/CD"]
 
-    subgraph AWS["☁️ AWS Cloud — EC2 Ubuntu"]
-        subgraph HOST["EC2 Host"]
-            NGINX["Nginx :80"]
-            REACT["React 19 Static Frontend"]
-            subgraph DOCKER["Docker Compose Network"]
-                US["User API :8001"]
-                PS["Product API :8002"]
-                OS["Order API :8003"]
-                PAY["Payment API :8004"]
-                DB[("PostgreSQL :5432")]
-                PROM["Prometheus :9090"]
-                GRAF["Grafana :3000"]
+    subgraph AWS["AWS EC2 Ubuntu"]
+        NGINX["Nginx :80"]
+
+        subgraph COMPOSE["Docker Compose Environment"]
+            REACT["React Frontend /"]
+            subgraph SERVICES["FastAPI Microservices"]
+                U["User Service"]
+                P["Product Service"]
+                O["Order Service"]
+                PAY["Payment Service"]
             end
-            JENKINS["Jenkins :8080"]
+            DB[("PostgreSQL")]
         end
+
+        subgraph K3S["K3s Kubernetes Environment"]
+            KFRONT["React Frontend /k8s/"]
+            subgraph KAPPS["Kubernetes Microservices"]
+                KU["User Service"]
+                KP["Product Service"]
+                KO["Order Service"]
+                KPAY["Payment Service"]
+            end
+            KDB[("PostgreSQL StatefulSet")]
+        end
+
+        PROM["Prometheus"]
+        GRAF["Grafana"]
     end
 
-    User -->|"HTTP"| NGINX
-    NGINX -->|"Serves static files"| REACT
-    NGINX -->|"/api/users"| US
-    NGINX -->|"/api/products"| PS
-    NGINX -->|"/api/orders"| OS
-    NGINX -->|"/api/payments"| PAY
+    USER --> NGINX
+    NGINX --> REACT
+    NGINX --> KFRONT
+    NGINX --> U
+    NGINX --> P
+    NGINX --> O
+    NGINX --> PAY
+    NGINX --> KU
+    NGINX --> KP
+    NGINX --> KO
+    NGINX --> KPAY
 
-    US --> DB
-    PS --> DB
-    OS --> DB
+    U --> DB
+    P --> DB
+    O --> DB
     PAY --> DB
 
-    PROM -->|"Scrapes /metrics"| US
-    PROM --> PS
-    PROM --> OS
-    PROM --> PAY
-    GRAF --> PROM
+    KU --> KDB
+    KP --> KDB
+    KO --> KDB
+    KPAY --> KDB
 
     GH --> GHA
-    GH -->|"SCM checkout / polling"| JENKINS
+    GH --> JENKINS
+    JENKINS -.-> COMPOSE
+
+    PROM --> U
+    PROM --> P
+    PROM --> O
+    PROM --> PAY
+    PROM --> KU
+    PROM --> KP
+    PROM --> KO
+    PROM --> KPAY
+    PROM --> GRAF
 
     classDef frontend fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef backend fill:#dcfce7,stroke:#16a34a,color:#14532d
     classDef ops fill:#fef3c7,stroke:#d97706,color:#78350f
-    class REACT,NGINX frontend
-    class US,PS,OS,PAY,DB backend
-    class JENKINS,PROM,GRAF,GHA ops
-```
 
+    class NGINX,REACT,KFRONT frontend
+    class U,P,O,PAY,DB,KU,KP,KO,KPAY,KDB backend
+    class GH,GHA,JENKINS,PROM,GRAF ops
+
+```
 ## 3. Microservices
 
 The application consists of a React frontend and four independent FastAPI services.
