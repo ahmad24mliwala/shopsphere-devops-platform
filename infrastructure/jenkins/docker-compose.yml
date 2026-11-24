@@ -12,7 +12,7 @@ services:
     environment:
       JAVA_OPTS: "-Xms96m -Xmx192m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=64m -XX:+UseG1GC"
 
-    mem_limit: 512m
+    mem_limit: 1g
     cpus: 0.5
 
     volumes:
